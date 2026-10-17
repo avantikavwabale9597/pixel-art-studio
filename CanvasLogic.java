@@ -26,8 +26,27 @@ public class CanvasLogic{
     }
 
     public void drawLineDDA(int x1, int y1, int x2, int y2, Color color){
+         int dx = x2-x1;
+         int dy = y2-y1;
 
-        drawPixel(x2,y2,color);
+         int steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+         if (steps==0){
+            drawPixel(x1, y1, color);
+            return;
+         }
+
+         float xIncrement = (float) dx /steps;
+         float yIncrement = (float) dy / steps;
+
+         float currentX = x1;
+         float currentY = y1;
+
+         for(int i =0;i<=steps;i++){
+            drawPixel(Math.round(currentX), Math.round(currentY), color);
+            currentX += xIncrement;
+            currentY += yIncrement;
+         }
     }
 
     public void drawLineBresenham(int x1, int y1, int x2, int y2, Color color){

@@ -3,75 +3,115 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class PixelArtStudioUI extends JFrame {
+    
     private CanvasLogic logic;
-    private String currentTool = "PENCIL";
-    private Color currentColor = Color.BLACK;
     private DrawingPanel drawPanel;
+    
+    private JComboBox<String> toolCombo;
+    private JComboBox<String> algoCombo;
+    private Color currentColor = Color.BLACK;
+    
     private int startX, startY;
 
-    public PixelArtStudioUI(){
+    public PixelArtStudioUI() {
         logic = new CanvasLogic();
 
         setTitle("Retro Pixel Art Studio");
-        setSize(800, 650);
+        setSize(850, 650);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         JPanel toolbar = new JPanel();
-        JButton btnPencil = new JButton("Pencil (DDA)");
-        JButton btnLine = new JButton ("Line (Bresenham)");
-        JButton btnFill = new JButton("Bucket (Flood Fill)");
+        
+        toolbar.add(new JLabel("Tool: "));
+        String[] tools = {"Pencil", "Line", "Circle", "Fill"};
+        toolCombo = new JComboBox<>(tools);
+        
+        toolbar.add(new JLabel("Algorithm: "));
+        algoCombo = new JComboBox<>();
+        updateAlgorithmDropdown();
+        
         JButton btnClear = new JButton("Clear Canvas");
 
-        btnPencil.addActionListener(e -> currentTool = "PENCIL");
-        btnLine.addActionListener(e -> currentTool = "LINE");
-        btnFill.addActionListener(e -> currentTool = "FILL");
+        toolCombo.addActionListener(e -> updateAlgorithmDropdown());
+        
         btnClear.addActionListener(e -> {
             logic.clearCanvas();
             drawPanel.repaint();
         });
 
-        toolbar.add(btnPencil);
-        toolbar.add(btnLine);
-        toolbar.add(btnFill);
+        toolbar.add(toolCombo);
+        toolbar.add(algoCombo);
         toolbar.add(btnClear);
         add(toolbar, BorderLayout.NORTH);
 
         drawPanel = new DrawingPanel();
         add(drawPanel, BorderLayout.CENTER);
-
         setupMouseListeners();
     }
 
-    private void setupMouseListeners(){
-        drawPanel.addMouseListener(new MouseAdapter(){
-            @Override 
-            public void mousePressed(MouseEvent e){
+    private void updateAlgorithmDropdown() {
+        algoCombo.removeAllItems();
+        String selectedTool = (String) toolCombo.getSelectedItem();
+        
+        if (selectedTool.equals("Pencil")) {
+            algoCombo.addItem("DDA");
+        } else if (selectedTool.equals("Line")) {
+            algoCombo.addItem("DDA");
+            algoCombo.addItem("Bresenham");
+        } else if (selectedTool.equals("Circle")) {
+            algoCombo.addItem("DDA");
+            algoCombo.addItem("Bresenham");
+            algoCombo.addItem("Midpoint");
+        } else if (selectedTool.equals("Fill")) {
+            algoCombo.addItem("Flood Fill");
+            algoCombo.addItem("Seed Fill");
+            algoCombo.addItem("Scan Line Fill");
+        }
+    }
+
+    private void setupMouseListeners() {
+        drawPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
                 startX = e.getX();
                 startY = e.getY();
-
-                if(currentTool.equals("FILL")){
-                    logic.floodFill(startX, startY, currentColor);
+                
+                String tool = (String) toolCombo.getSelectedItem();
+                String algo = (String) algoCombo.getSelectedItem();
+                
+                if (tool.equals("Fill")) {
+                    logic.applyFill(startX, startY, currentColor, algo);
                     drawPanel.repaint();
                 }
             }
 
-            @Override 
-            public void mouseReleased(MouseEvent e){
-                if(currentTool.equals("LINE")){
-                    logic.drawLineBresenham(startX, startY, e.getX(),e.getY(), currentColor);
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                String tool = (String) toolCombo.getSelectedItem();
+                String algo = (String) algoCombo.getSelectedItem();
+                
+                if (tool.equals("Line")) {
+                    logic.drawLine(startX, startY, e.getX(), e.getY(), currentColor, algo);
+                    drawPanel.repaint();
+                } else if (tool.equals("Circle")) {
+                    // Calculate radius using distance formula
+                    int radius = (int) Math.sqrt(Math.pow(e.getX() - startX, 2) + Math.pow(e.getY() - startY, 2));
+                    logic.drawCircle(startX, startY, radius, currentColor, algo);
                     drawPanel.repaint();
                 }
             }
         });
 
         drawPanel.addMouseMotionListener(new MouseMotionAdapter() {
-            @Override 
-            public void mouseDragged(MouseEvent e){
-                if(currentTool.equals("PENCIL")){
-                    logic.drawLineDDA(startX, startY, e.getX(),e.getY(),currentColor);
-                    startX=e.getX();
-                    startY=e.getY();
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                String tool = (String) toolCombo.getSelectedItem();
+                if (tool.equals("Pencil")) {
+                    // Pencil always uses DDA for smooth freehand
+                    logic.drawLineDDA(startX, startY, e.getX(), e.getY(), currentColor);
+                    startX = e.getX(); 
+                    startY = e.getY();
                     drawPanel.repaint();
                 }
             }
@@ -79,14 +119,14 @@ public class PixelArtStudioUI extends JFrame {
     }
 
     class DrawingPanel extends JPanel {
-        @Override 
-        protected void paintComponent(Graphics g){
+        @Override
+        protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            g.drawImage(logic.getImage(),0,0,null);
+            g.drawImage(logic.getImage(), 0, 0, null);
         }
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             new PixelArtStudioUI().setVisible(true);
         });
